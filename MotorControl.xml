@@ -189,16 +189,9 @@ Output: %QX0.0]]></rb>
                 <position x="280" y="50"/>
               </connection>
 
-              <!-- Latch Path: From between Start/Stop junction? No, typically parallel to Start -->
-              <!-- Correct Latch Logic: Parallel to Start Button only -->
-              <!-- Re-defining connections for clarity in standard LD -->
-              
-              <!-- Power to Start & Latch Split -->
-              <!-- Actually, let's simplify the XML structure to ensure compatibility -->
-              <!-- Standard Rung: --[Start]--+--[Stop]--[Overload]--(Motor)--
-                                      |
-                                      +--[Motor]--+ 
-              -->
+              <!-- Latch Path: Parallel to Start Button -->
+              <!-- Standard Rung: Start in series with Stop, Overload and Motor coil -->
+              <!-- Latch contact is in parallel with Start button -->
               
               <!-- Let's rebuild the connections properly for the Latch -->
               <!-- Node A: Before Start -->
