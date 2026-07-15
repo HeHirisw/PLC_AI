@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SysmacStudioProject xmlns="http://www.omron.co.jp/sysmac/studio/project">
+  <ProjectInfo>
+    <Name>MotorStartStop</Name>
+    <Version>1.0</Version>
+    <Description>欧姆龙NX系列PLC电机启停控制程序</Description>
+    <CreatedDate>2024-01-15T10:00:00</CreatedDate>
+  </ProjectInfo>
+  
+  <PLCConfig>
+    <Model>NX1P2-1040DT1</Model>
+    <Series>NX-Series</Series>
+  </PLCConfig>
+  
+  <SymbolTable>
+    <!-- 输入信号 -->
+    <Symbol>
+      <Name>StartButton</Name>
+      <Address>I0.0</Address>
+      <DataType>BOOL</DataType>
+      <Comment>启动按钮 (常开)</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>StopButton</Name>
+      <Address>I0.1</Address>
+      <DataType>BOOL</DataType>
+      <Comment>停止按钮 (常闭)</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>EmergencyStop</Name>
+      <Address>I0.2</Address>
+      <DataType>BOOL</DataType>
+      <Comment>急停按钮</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>MotorOverload</Name>
+      <Address>I0.3</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机过载保护</Comment>
+    </Symbol>
+    
+    <!-- 输出信号 -->
+    <Symbol>
+      <Name>MotorContactor</Name>
+      <Address>Q0.0</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机接触器线圈</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>MotorRunInd</Name>
+      <Address>Q0.1</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机运行指示灯</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>MotorFaultInd</Name>
+      <Address>Q0.2</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机故障指示灯</Comment>
+    </Symbol>
+    
+    <!-- 内部继电器 -->
+    <Symbol>
+      <Name>MotorRunning</Name>
+      <Address>W0.0</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机运行状态标志</Comment>
+    </Symbol>
+    <Symbol>
+      <Name>MotorFault</Name>
+      <Address>W0.1</Address>
+      <DataType>BOOL</DataType>
+      <Comment>电机故障标志</Comment>
+    </Symbol>
+  </SymbolTable>
+  
+  <LadderProgram>
+    <ProgramName>MainProgram</ProgramName>
+    <Networks>
+      
+      <!-- Network 1: 电机启停控制逻辑 -->
+      <Network Number="1">
+        <Comment>电机启停控制 - 自锁电路</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <Or>
+                <And>
+                  <NormallyOpen Symbol="StartButton" Address="I0.0"/>
+                  <NormallyClosed Symbol="StopButton" Address="I0.1"/>
+                  <NormallyClosed Symbol="EmergencyStop" Address="I0.2"/>
+                  <NormallyClosed Symbol="MotorOverload" Address="I0.3"/>
+                  <NormallyClosed Symbol="MotorFault" Address="W0.1"/>
+                </And>
+                <And>
+                  <NormallyOpen Symbol="MotorRunning" Address="W0.0"/>
+                  <NormallyClosed Symbol="StopButton" Address="I0.1"/>
+                  <NormallyClosed Symbol="EmergencyStop" Address="I0.2"/>
+                  <NormallyClosed Symbol="MotorOverload" Address="I0.3"/>
+                  <NormallyClosed Symbol="MotorFault" Address="W0.1"/>
+                </And>
+              </Or>
+            </Conditions>
+            <Outputs>
+              <Coil Symbol="MotorRunning" Address="W0.0"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+      <!-- Network 2: 电机接触器输出 -->
+      <Network Number="2">
+        <Comment>驱动电机接触器</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <NormallyOpen Symbol="MotorRunning" Address="W0.0"/>
+            </Conditions>
+            <Outputs>
+              <Coil Symbol="MotorContactor" Address="Q0.0"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+      <!-- Network 3: 运行指示灯 -->
+      <Network Number="3">
+        <Comment>电机运行指示灯</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <NormallyOpen Symbol="MotorRunning" Address="W0.0"/>
+            </Conditions>
+            <Outputs>
+              <Coil Symbol="MotorRunInd" Address="Q0.1"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+      <!-- Network 4: 故障检测 -->
+      <Network Number="4">
+        <Comment>电机故障检测</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <Or>
+                <NormallyOpen Symbol="EmergencyStop" Address="I0.2"/>
+                <NormallyOpen Symbol="MotorOverload" Address="I0.3"/>
+              </Or>
+            </Conditions>
+            <Outputs>
+              <Coil Symbol="MotorFault" Address="W0.1"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+      <!-- Network 5: 故障指示灯 -->
+      <Network Number="5">
+        <Comment>电机故障指示灯</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <NormallyOpen Symbol="MotorFault" Address="W0.1"/>
+            </Conditions>
+            <Outputs>
+              <Coil Symbol="MotorFaultInd" Address="Q0.2"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+      <!-- Network 6: 故障复位逻辑 -->
+      <Network Number="6">
+        <Comment>故障复位 (按下启动按钮前先复位故障)</Comment>
+        <Rungs>
+          <Rung>
+            <Conditions>
+              <And>
+                <NormallyClosed Symbol="EmergencyStop" Address="I0.2"/>
+                <NormallyClosed Symbol="MotorOverload" Address="I0.3"/>
+              </And>
+            </Conditions>
+            <Outputs>
+              <NormallyClosed Coil="MotorFault" Address="W0.1"/>
+            </Outputs>
+          </Rung>
+        </Rungs>
+      </Network>
+      
+    </Networks>
+  </LadderProgram>
+  
+  <ProgramDescription>
+    <![CDATA[
+    ============================================
+    欧姆龙NX系列PLC - 电机启停控制程序
+    ============================================
+    
+    功能说明:
+    1. 按下启动按钮(I0.0)，电机启动并自锁保持运行
+    2. 按下停止按钮(I0.1)，电机停止运行
+    3. 急停按钮(I0.2)按下时，立即停止电机并触发故障指示
+    4. 电机过载(I0.3)时，自动停止电机并触发故障指示
+    5. 运行指示灯(Q0.1)显示电机运行状态
+    6. 故障指示灯(Q0.2)显示故障状态
+    
+    I/O分配:
+    - I0.0: 启动按钮 (NO)
+    - I0.1: 停止按钮 (NC)
+    - I0.2: 急停按钮 (NC)
+    - I0.3: 过载保护 (NC)
+    - Q0.0: 电机接触器
+    - Q0.1: 运行指示灯
+    - Q0.2: 故障指示灯
+    
+    安全特性:
+    - 多重保护(急停、过载)
+    - 故障指示
+    - 自锁电路防止误操作
+    ============================================
+    ]]>
+  </ProgramDescription>
+  
+  <FileMetadata>
+    <Format>SCM2</Format>
+    <Encoding>UTF-8</Encoding>
+    <CompatibleSoftware>Sysmac Studio 1.5+</CompatibleSoftware>
+    <GeneratedBy>AI Assistant</GeneratedBy>
+  </FileMetadata>
+</SysmacStudioProject>
